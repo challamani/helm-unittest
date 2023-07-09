@@ -1,0 +1,17 @@
+suite: test hpa manifest
+templates:
+  - hpa.yaml
+tests:
+  - it: should generate the HPA resource
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - isAPIVersion:
+          of: autoscaling/v2beta1
+      - equal:
+          path: spec.maxReplicas
+          value: 100
+      - hasDocuments:
+          count: 1

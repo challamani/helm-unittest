@@ -1,0 +1,53 @@
+apiVersion: gateway.tsb.tetrate.io/v2
+kind: Tier1Gateway
+metadata:
+  name: tier1
+  group: g1
+  workspace: w1
+  tenant: mycompany
+  organization: changeme-myorg
+spec:
+  workloadSelector:
+    namespace: tier1
+    labels:
+      app: gateway
+  externalServers:
+    - name: movieinfo-plain
+      hostname: movieinfo.com # Plaintext and HTTPS redirect
+      port: 8080
+      redirect:
+        authority: movieinfo.com
+        url: "/"
+        redirectCode: 301
+        port: 8443
+        scheme: https
+    - name: movieinfo
+      hostname: movieinfo.com # TLS termination and Istio mTLS to upstream
+      port: 8443
+      tls:
+        mode: SIMPLE
+        secretName: movieinfo-secrets
+      clusters:
+        - name: c3 # the target gateway IPs will be automatically determined
+          weight: 90
+        - name: c4
+          weight: 10
+      authentication:
+        jwt:
+          issuer: "auth.mycompany.com"
+          jwksUri: https://auth.company.com/oauth2/jwks
+      authorization:
+        external:
+          uri: "https://auth.company.com"
+          includeRequestHeaders:
+            - authorization
+---
+apiVersion: install.tetrate.io/v1alpha1
+kind: Tier1Gateway
+metadata:
+  name: gateway
+  namespace: tier1
+spec:
+  kubeSpec:
+    service:
+      type: LoadBalancer

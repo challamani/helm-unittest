@@ -1,0 +1,67 @@
+suite: test tier1 gateway manifest
+templates:
+  - deployment.yaml
+tests:
+
+  - it: should refer correct apiVersion and Kind
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Tier1Gateway
+      - isAPIVersion:
+          of: "gateway.tsb.tetrate.io/v2"
+
+  - it: should contain right metadata
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: kind
+          value: Tier1Gateway
+      - equal:
+          path: apiVersion
+          value: "gateway.tsb.tetrate.io/v2"
+      - equal:
+          path: metadata.group
+          value: g1
+      - equal:
+          path: metadata.workspace
+          value: w1
+      - equal:
+          path: metadata.tenant
+          value: mycompany
+      - matchRegex:
+          path: metadata.organization
+          pattern: -myorg$
+
+  - it: should have a valid authentication details
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.externalServers[1].authentication.jwt.issuer
+          value: "auth.mycompany.com"
+      - equal:
+          path: spec.externalServers[1].authentication.jwt.issuer
+          value: "auth.mycompany.com"
+      - equal:
+          path: spec.externalServers[1].authentication.jwt.jwksUri
+          value: "https://auth.company.com/oauth2/jwks"
+
+  - it: should set correct tls mode and https port
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.externalServers[1].port
+          value: 8443
+      - equal:
+          path: spec.externalServers[1].tls.mode
+          value: SIMPLE
+      - equal:
+          path: spec.externalServers[1].tls.secretName
+          value: movieinfo-secrets
+
+  - it: should expose the Tier1 service via LoadBalancer
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.kubeSpec.service.type
+          value: LoadBalancer

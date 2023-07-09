@@ -1,0 +1,99 @@
+suite: test tetrate gw helm resources
+templates:
+  - templates/deployment.yaml
+  - templates/hpa.yaml
+tests:
+  - it: should validate the document metadata
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+    - containsDocument:
+        kind: Tier1Gateway
+        apiVersion: gateway.tsb.tetrate.io/v2
+        name: tier1
+
+  - it: should work with equal, notEqual and isNotEmpty operations
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.externalServers[1].port
+          value: 8443
+      - notEqual:
+          path: spec.externalServers[1].port
+          value: 80
+      - isNotEmpty:
+          path: spec.externalServers[1].tls.secretName
+
+  - it: should validate the array items
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.externalServers[1].clusters
+          content:
+            name: c3
+            weight: 90
+          count: 1
+          any: true
+
+  - it: should validate the entire array item
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: spec.externalServers
+          content:
+            name: movieinfo-plain
+            hostname: movieinfo.com
+            port: 8080
+            redirect:
+              authority: movieinfo.com
+              url: "/"
+              redirectCode: 301
+              port: 8443
+              scheme: https
+          count: 1
+          any: true
+
+  - it: should validate subset match
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+      - isSubset:
+          path: metadata
+          content:
+            name: tier1
+            group: g1
+            workspace: w1
+            tenant: mycompany
+            organization: changeme-myorg
+
+  - it: should validate the length
+    template: deployment.yaml
+    documentIndex: 0
+    asserts:
+      - lengthEqual:
+          path: spec.externalServers
+          count: 2
+
+  - it: should generate the HPA resource
+    template: hpa.yaml
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - isAPIVersion:
+          of: autoscaling/v2beta1
+      - equal:
+          path: spec.maxReplicas
+          value: 100
+      - hasDocuments:
+          count: 1
+
+  - it: should generate the HPA resource
+    template: hpa.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
